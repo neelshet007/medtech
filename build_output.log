@@ -1,0 +1,29 @@
+
+> medicalproject@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.3s
+  Running TypeScript ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/21) ...
+  Generating static pages using 15 workers (5/21) 
+  Generating static pages using 15 workers (10/21) 
+⨯ useSearchParams() should be wrapped in a suspense boundary at page "/login". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at Q (C:\Web Devlopment\NextJs\MedicalProject\medicalproject\.next\server\chunks\ssr\node_modules_next_920e7746._.js:2:2111)
+    at o (C:\Web Devlopment\NextJs\MedicalProject\medicalproject\.next\server\chunks\ssr\node_modules_next_920e7746._.js:4:5284)
+    at i (C:\Web Devlopment\NextJs\MedicalProject\medicalproject\.next\server\chunks\ssr\[root-of-the-server]__23c6519e._.js:1:4595)
+    at an (C:\Web Devlopment\NextJs\MedicalProject\medicalproject\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84360)
+    at ai (C:\Web Devlopment\NextJs\MedicalProject\medicalproject\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:86179)
+    at al (C:\Web Devlopment\NextJs\MedicalProject\medicalproject\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:107953)
+    at as (C:\Web Devlopment\NextJs\MedicalProject\medicalproject\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:105368)
+    at aa (C:\Web Devlopment\NextJs\MedicalProject\medicalproject\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84712)
+    at ai (C:\Web Devlopment\NextJs\MedicalProject\medicalproject\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:86228)
+    at ai (C:\Web Devlopment\NextJs\MedicalProject\medicalproject\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:104708)
+Error occurred prerendering page "/login". Read more: https://nextjs.org/docs/messages/prerender-error
+Export encountered an error on /login/page: /login, exiting the build.
+⨯ Next.js build worker exited with code: 1 and signal: null
