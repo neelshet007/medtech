@@ -1,9 +1,3 @@
-Since you are building a **medical supply chain platform** and using this project to master **MERN** and **DevOps**, your README should reflect that professional ambition.
-
-Here is a high-quality `README.md` template tailored for your project. It highlights the "AI-Co-Pilot" approach you're taking and provides clear instructions for the local MongoDB Compass setup we discussed.
-
----
-
 # 🏥 MedChain: AI-Enhanced Pharma Supply Chain
 
 **MedChain** is a decentralized, end-to-end supply chain management platform designed to bring transparency and efficiency to pharmaceutical logistics. By leveraging the MERN stack and AI-driven development, this project aims to solve critical issues like expired goods tracking and counterfeit prevention.
@@ -95,5 +89,3 @@ Visit [http://localhost:3000](https://www.google.com/search?q=http://localhost:3
 * **DevOps Tools:** Docker (Optional), MongoDB Compass
 
 ---
-
-**Would you like me to add a "Project Structure" section to this README to help others (or yourself) navigate the folders more easily?**
