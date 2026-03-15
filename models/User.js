@@ -17,12 +17,13 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, "Please provide a password"],
-      minlength: [6, "Password must be at least 6 characters"],
+      minlength: [8, "Password must be at least 8 characters"],
     },
     role: {
       type: String,
-      enum: ["patient", "admin"],
+      enum: ["patient"],
       default: "patient",
+      immutable: true,
     },
   },
   { timestamps: true }

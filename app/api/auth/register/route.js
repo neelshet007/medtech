@@ -2,19 +2,21 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectToDatabase } from "@/lib/db";
 import { User } from "@/models/User";
+import { validatePatientRegistration } from "@/lib/validation";
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { name, email, password, role } = body;
+    const validated = validatePatientRegistration(body);
 
-    // Validate Input
-    if (!name || !email || !password) {
+    if (validated.error) {
       return NextResponse.json(
-        { message: "Missing required fields" },
+        { message: validated.error },
         { status: 400 }
       );
     }
+
+    const { name, email, password } = validated.data;
 
     await connectToDatabase();
 
@@ -27,16 +29,13 @@ export async function POST(request) {
       );
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user in DB
-    const userRole = role === "admin" ? "admin" : "patient"; // Only allow admin or patient
     const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
-      role: userRole,
+      role: "patient",
     });
 
     return NextResponse.json(
@@ -46,7 +45,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Register Error:", error);
     return NextResponse.json(
-      { message: "Internal Server Error", error: error.message },
+      { message: "Internal Server Error" },
       { status: 500 }
     );
   }

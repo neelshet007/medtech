@@ -4,6 +4,55 @@
 
 ---
 
+## Admin Isolation Architecture
+
+### Folder structure
+
+- `models/Admin.js`: isolated administrator collection with immutable `role: "admin"`.
+- `models/User.js`: patient-only collection. Public registration cannot create admins.
+- `lib/auth.js`: separate patient and admin credential verification with a shared JWT strategy.
+- `middleware.js`: edge protection for `/admin`, `/api/admin`, and admin-only product mutations.
+- `app/admin/login/page.js`: dedicated admin login with no sign-up flow.
+- `app/api/products/*`: database-backed product read/write flow. Reads are public; writes require an admin token.
+- `app/api/payments/*`: patient checkout with server-side total verification and stock reduction after verified payment.
+
+### Middleware logic
+
+- Any request to `/admin/*` checks the JWT role before the page renders.
+- Unauthenticated users are redirected to `/admin/login`.
+- Logged-in patients are also redirected to `/admin/login` and never reach the admin UI.
+- Admin APIs and product write routes are blocked unless the token role is `admin`.
+
+### JWT verification
+
+- `patient-credentials` only checks the `User` collection.
+- `admin-credentials` only checks the `Admin` collection.
+- The JWT stores `id` and `role`.
+- Server routes validate the token role. The frontend role is never trusted for privileged actions.
+
+### Request lifecycle flow
+
+1. Patient signs in at `/login` against the patient collection.
+2. Admin signs in at `/admin/login` against the admin collection.
+3. NextAuth signs a JWT containing the user id and role.
+4. Middleware verifies the JWT before `/admin/*` and protected APIs execute.
+5. Admin product updates write directly to MongoDB, and the patient catalog reads the same product collection, so changes appear immediately.
+6. Checkout recalculates prices from live products on the server to stop client-side price tampering.
+7. Stock is reduced only after payment signature verification succeeds.
+
+### Why separate admin storage is more secure
+
+- A patient registration bug cannot create an admin record in a different collection.
+- Authentication lookups do not mix privileged and non-privileged identities.
+- Production systems commonly isolate privileged identities with separate stores, stricter provisioning, and narrower login surfaces for exactly this reason.
+
+### Role-based protection model
+
+- Public users can browse medicines.
+- Only authenticated patients or admins can use patient ordering flows.
+- Only admins can access `/admin/dashboard`, `/admin/products`, `/admin/orders`, and admin write APIs.
+- Admins can still access `/dashboard`, which renders the patient-side experience.
+
 ## 🤖 AI as a Co-Pilot
 
 This project was built using an **AI-Assisted Development** workflow. Here is how AI was utilized:
