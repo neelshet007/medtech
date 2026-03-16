@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/components/CartProvider";
+import { formatCurrency } from "@/lib/formatters";
 
 export default function CartPage() {
   const { data: session } = useSession();
@@ -54,7 +55,7 @@ export default function CartPage() {
                 <div key={item.product._id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-900 truncate">{item.product.name}</h3>
-                    <p className="text-sm text-teal-600 font-medium">Rs. {item.price}</p>
+                    <p className="text-sm text-teal-600 font-medium">{formatCurrency(item.price)}</p>
                   </div>
 
                   <div className="flex items-center space-x-4 ml-4">
@@ -82,7 +83,7 @@ export default function CartPage() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal ({itemCount} items)</span>
-                  <span className="font-medium text-slate-900">Rs. {getCartTotal().toFixed(2)}</span>
+                  <span className="font-medium text-slate-900">{formatCurrency(getCartTotal())}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Delivery Fee</span>
@@ -92,7 +93,7 @@ export default function CartPage() {
 
               <div className="flex justify-between text-lg font-bold text-slate-900 mb-6 pt-4 border-t border-slate-100">
                 <span>Total</span>
-                <span>Rs. {getCartTotal().toFixed(2)}</span>
+                <span>{formatCurrency(getCartTotal())}</span>
               </div>
 
               <Link href="/patient/checkout" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 transition">

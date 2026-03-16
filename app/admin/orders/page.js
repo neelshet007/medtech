@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Clock, Loader2, LogOut, Package, RefreshCw, XCircle, Truck, Save, ExternalLink } from "lucide-react";
 import { LogoutButton } from "@/components/LogoutButton";
+import { formatCurrency } from "@/lib/formatters";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -11,11 +12,12 @@ export default function AdminOrdersPage() {
   const [updatingId, setUpdatingId] = useState(null);
   const [updateData, setUpdateData] = useState({});
   const [expandedCustomer, setExpandedCustomer] = useState(null);
+  const [toast, setToast] = useState("");
 
   async function fetchOrders() {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/orders");
+      const response = await fetch("/api/admin/orders", { cache: "no-store" });
       const data = await response.json();
       if (data.success) {
         setOrders(data.orders);
@@ -69,18 +71,24 @@ export default function AdminOrdersPage() {
       });
       const result = await res.json();
       if (result.success) {
-        alert("Order updated successfully!");
+        setToast("Order updated successfully.");
         fetchOrders();
       } else {
-        alert(result.message || "Failed to update order");
+        setToast(result.message || "Failed to update order");
       }
     } catch (error) {
        console.error(error);
-       alert("Error updating order.");
+       setToast("Error updating order.");
     } finally {
        setUpdatingId(null);
     }
   }
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(""), 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   function getStatusBadge(status) {
     if (!status) return null;
@@ -118,6 +126,11 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
+      {toast ? (
+        <div className="fixed right-6 top-6 z-50 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg">
+          {toast}
+        </div>
+      ) : null}
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div>
@@ -188,7 +201,7 @@ export default function AdminOrdersPage() {
                                </ul>
                                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                                   <span className="text-sm font-bold text-slate-500">Total</span>
-                                  <span className="font-bold text-teal-600 text-lg">Rs. {order.totalAmount}</span>
+                                  <span className="font-bold text-teal-600 text-lg">{formatCurrency(order.totalAmount)}</span>
                                </div>
                                {order.prescriptionUrl && (
                                   <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-center justify-between">

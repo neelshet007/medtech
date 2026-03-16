@@ -26,7 +26,7 @@ export default function PatientLayout({ children }) {
             <ShoppingBag size={18} /> Pharmacy Store
           </Link>
           <div className="mt-4 mb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Medical</div>
-          <Link href="/patient/records" className="flex items-center justify-between px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium transition">
+          <Link href="/dashboard/health-record" className="flex items-center justify-between px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium transition">
             <div className="flex items-center gap-3"><FileText size={18} /> Health Records</div>
           </Link>
           <Link href="/patient/consult" className="flex items-center justify-between px-4 py-3 rounded-xl text-slate-500 hover:bg-teal-50 hover:text-teal-700 font-medium transition cursor-pointer">

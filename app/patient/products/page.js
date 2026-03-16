@@ -113,7 +113,7 @@ export default function PatientProductsPage() {
           <Pill className="text-teal-600" />
           Medical Pharmacy
         </h1>
-        <Link href={session?.user ? "/patient/cart" : "/login"} className="relative p-2 bg-teal-50 rounded-full text-teal-700 hover:bg-teal-100 transition">
+        <Link href={session?.user ? "/dashboard/cart" : "/login"} className="relative p-2 bg-teal-50 rounded-full text-teal-700 hover:bg-teal-100 transition">
           <ShoppingCart size={24} />
           {itemCount > 0 ? (
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
@@ -137,7 +137,7 @@ export default function PatientProductsPage() {
                 <h3 className="font-bold text-sm">Order by Prescription</h3>
              </div>
              <p className="text-teal-50 text-xs mb-3 leading-relaxed">
-                Upload your doctor's note and let AI find the matching medicines for you.
+                Upload your doctor&apos;s note and let AI find the matching medicines for you.
              </p>
              <label className="bg-white/20 hover:bg-white/30 border border-white/30 text-white w-full py-2 rounded-lg text-xs font-bold text-center block cursor-pointer transition">
                 {isVerifying ? "Analyzing..." : "Upload & Auto-Fill"}

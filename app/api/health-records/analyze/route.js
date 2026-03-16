@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { HealthReport } from "@/models/HealthReport";
+import { getHealthRecords } from "@/lib/dashboard-data";
 
 export async function POST(req) {
   try {
@@ -24,7 +25,8 @@ export async function POST(req) {
 
     const webhookUrl = process.env.N8N_HEALTH_RECORD_WEBHOOK_URL;
     let extractedMetrics = {
-      bloodPressureSys: 120, // defaults for demo fallback
+      // Fallback values are only used when the AI webhook is unavailable.
+      bloodPressureSys: 120,
       bloodPressureDia: 80,
       heartRate: 72,
       sugarLevel: 90,
@@ -61,11 +63,11 @@ export async function POST(req) {
 
     await connectToDatabase();
 
-    // Create health record db entry
     const report = await HealthReport.create({
       user: session.user.id,
       title: file.name || "Uploaded Report",
-      fileUrl: "local_or_cloud_placeholder_url_here",
+      fileUrl: file.name || "uploaded-report",
+      reportDate: new Date(),
       metrics: extractedMetrics
     });
 
@@ -89,10 +91,8 @@ export async function GET(req) {
 
     await connectToDatabase();
     
-    // Fetch last 10 reports sorted by newest
-    const reports = await HealthReport.find({ user: session.user.id }).sort({ reportDate: -1 }).limit(10).lean();
-    
-    return NextResponse.json({ success: true, reports });
+    const data = await getHealthRecords(session.user.id);
+    return NextResponse.json({ success: true, ...data });
   } catch (error) {
     return NextResponse.json({ success: false, message: "Error fetching reports" }, { status: 500 });
   }

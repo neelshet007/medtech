@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
+import { notifyAdminAboutOrder, notifyCustomerAboutOrder } from "@/lib/order-notifications";
 import { Order } from "@/models/Order";
 import { Product } from "@/models/Product";
 
@@ -33,6 +34,10 @@ export async function POST(request) {
 
     if (order.user.toString() !== session.user.id) {
       return NextResponse.json({ message: "Forbidden." }, { status: 403 });
+    }
+
+    if (order.paymentMethod === "COD") {
+      return NextResponse.json({ message: "COD orders do not require Razorpay verification." }, { status: 400 });
     }
 
     if (generatedSignature !== razorpay_signature) {
@@ -73,34 +78,8 @@ export async function POST(request) {
       { new: true }
     ).populate("user", "name email");
 
-    // Fire admin notification webhook
-    if (process.env.N8N_WEBHOOK_URL) {
-      fetch(process.env.N8N_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: updatedOrder._id,
-          amount: updatedOrder.totalAmount,
-          customer: updatedOrder.user,
-          event: "order_paid",
-        }),
-      }).catch((err) => console.error("Admin webhook failed:", err));
-    }
-
-    // Fire customer confirmation webhook
-    if (process.env.N8N_CUSTOMER_WEBHOOK_URL) {
-      fetch(process.env.N8N_CUSTOMER_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: updatedOrder._id,
-          amount: updatedOrder.totalAmount,
-          customerName: updatedOrder.user?.name || "Customer",
-          customerPhone: updatedOrder.user?.phone || "",
-          event: "order_paid",
-        }),
-      }).catch((err) => console.error("Customer webhook failed:", err));
-    }
+    notifyAdminAboutOrder(updatedOrder);
+    notifyCustomerAboutOrder(updatedOrder);
 
     return NextResponse.json({ success: true, message: "Payment verified successfully." }, { status: 200 });
   } catch (error) {

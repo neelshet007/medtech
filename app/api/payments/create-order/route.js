@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { auth } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
+import { notifyAdminAboutOrder, notifyCustomerAboutOrder } from "@/lib/order-notifications";
 import { Order } from "@/models/Order";
 import { Product } from "@/models/Product";
 
@@ -20,6 +21,7 @@ export async function POST(request) {
     const body = await request.json();
     const items = Array.isArray(body.items) ? body.items : [];
     const prescriptionUrl = body.prescriptionUrl || null;
+    const paymentMethod = body.paymentMethod === "COD" ? "COD" : "Razorpay";
 
     if (items.length === 0) {
       return NextResponse.json({ message: "Cart items are required." }, { status: 400 });
@@ -64,11 +66,39 @@ export async function POST(request) {
       user: session.user.id,
       items: normalizedItems,
       totalAmount,
-      paymentStatus: "Pending",
+      paymentStatus: paymentMethod === "COD" ? "Pending (COD)" : "Pending",
+      paymentMethod,
       orderStatus: "Processing",
       prescriptionUrl,
       deliveryTimeline: [{ status: "Processing", description: "Order placed successfully" }],
     });
+
+    if (paymentMethod === "COD") {
+      for (const item of normalizedItems) {
+        const updatedProduct = await Product.findOneAndUpdate(
+          { _id: item.product, stock: { $gte: item.quantity } },
+          { $inc: { stock: -item.quantity } },
+          { new: true }
+        );
+
+        if (!updatedProduct) {
+          await Order.findByIdAndDelete(order._id);
+          return NextResponse.json(
+            { message: "Inventory changed before the COD order was finalized." },
+            { status: 409 }
+          );
+        }
+      }
+
+      const notifiedOrder = await Order.findById(order._id).populate("user", "name email phone");
+      notifyAdminAboutOrder(notifiedOrder);
+      notifyCustomerAboutOrder(notifiedOrder);
+
+      return NextResponse.json(
+        { success: true, orderId: order._id, totalAmount, paymentMethod: "COD" },
+        { status: 201 }
+      );
+    }
 
     const razorpayOrder = await razorpay.orders.create({
       amount: totalAmount * 100,
@@ -81,7 +111,7 @@ export async function POST(request) {
     await order.save();
 
     return NextResponse.json(
-      { success: true, orderId: order._id, razorpayOrder, totalAmount },
+      { success: true, orderId: order._id, razorpayOrder, totalAmount, paymentMethod: "Razorpay" },
       { status: 201 }
     );
   } catch (error) {

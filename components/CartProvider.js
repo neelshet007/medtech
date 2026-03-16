@@ -23,26 +23,11 @@ function readInitialCart() {
 }
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [cart, setCart] = useState(readInitialCart);
 
   useEffect(() => {
-    const savedCart = window.localStorage.getItem("medical_cart");
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (error) {
-        console.error("Failed to parse cart", error);
-      }
-    }
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (isLoaded) {
-      window.localStorage.setItem("medical_cart", JSON.stringify(cart));
-    }
-  }, [cart, isLoaded]);
+    window.localStorage.setItem("medical_cart", JSON.stringify(cart));
+  }, [cart]);
 
   function addToCart(product) {
     setCart((current) => {

@@ -33,8 +33,13 @@ const orderSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ["Pending", "Completed", "Failed", "Refunded"],
+      enum: ["Pending", "Pending (COD)", "Completed", "Failed", "Refunded"],
       default: "Pending",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["Razorpay", "COD"],
+      default: "Razorpay",
     },
     orderStatus: {
       type: String,
@@ -82,6 +87,7 @@ const orderSchema = new mongoose.Schema(
 
 // Indexing for faster queries (finding orders by a specific user)
 orderSchema.index({ user: 1 });
+orderSchema.index({ orderStatus: 1, paymentStatus: 1, createdAt: -1 });
 // Indexing for webhook tracking (matching an incoming razorpay id to internal id)
 orderSchema.index({ razorpayOrderId: 1 });
 

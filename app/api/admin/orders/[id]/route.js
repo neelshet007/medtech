@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
+import { createTimelineEntry } from "@/lib/order-status";
 import { Order } from "@/models/Order";
 
 export async function PATCH(request, context) {
@@ -29,15 +30,8 @@ export async function PATCH(request, context) {
     }
 
     order.orderStatus = orderStatus;
-    if (trackingId) {
-      order.trackingId = trackingId;
-    }
-    
-    order.deliveryTimeline.push({
-      status: orderStatus,
-      date: new Date(),
-      description: description || `Order marked as ${orderStatus}`
-    });
+    order.trackingId = trackingId || order.trackingId;
+    order.deliveryTimeline.push(createTimelineEntry(orderStatus, description));
 
     await order.save();
 
