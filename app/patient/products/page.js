@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
-import { Loader2, Pill, Search, ShoppingCart } from "lucide-react";
+import { FileText, Loader2, Pill, Search, ShoppingCart } from "lucide-react";
 import { useCart } from "@/components/CartProvider";
 
 export default function PatientProductsPage() {
@@ -15,6 +15,8 @@ export default function PatientProductsPage() {
   const [category, setCategory] = useState("All");
   const [authMessage, setAuthMessage] = useState("");
   const [toastMessage, setToastMessage] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState("");
   const { addToCart, itemCount } = useCart();
 
   const categories = ["All", "Medicine", "Equipment", "Supplement", "Personal Care"];
@@ -60,6 +62,43 @@ export default function PatientProductsPage() {
     setTimeout(() => setToastMessage(""), 3000);
   }
 
+  async function handlePrescriptionUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file || !session?.user) {
+      if (!session?.user) setAuthMessage("Please Sign In to upload a prescription.");
+      return;
+    }
+
+    setIsVerifying(true);
+    setVerifyError("");
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/prescription/parse", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (data.success && data.matchedProducts?.length > 0) {
+        data.matchedProducts.forEach((product) => {
+          addToCart(product);
+        });
+        setToastMessage(`AI matched ${data.matchedProducts.length} medicine(s) from your prescription!`);
+        setTimeout(() => setToastMessage(""), 4000);
+      } else if (data.success) {
+        setVerifyError("AI analyzed it, but no matching products found in our pharmacy.");
+      } else {
+        setVerifyError(data.message || "Failed to analyze prescription.");
+      }
+    } catch (err) {
+      setVerifyError("Connection error. Please try again.");
+    } finally {
+      setIsVerifying(false);
+    }
+  }
+
   return (
     <div className="p-6 md:p-8 xl:p-12 relative">
       {toastMessage && (
@@ -91,6 +130,29 @@ export default function PatientProductsPage() {
               {authMessage}
             </div>
           ) : null}
+
+          <div className="bg-linear-to-br from-teal-600 to-emerald-500 p-4 rounded-xl shadow-md text-white">
+             <div className="flex items-center gap-2 mb-2">
+                <FileText size={20} className="text-teal-100" />
+                <h3 className="font-bold text-sm">Order by Prescription</h3>
+             </div>
+             <p className="text-teal-50 text-xs mb-3 leading-relaxed">
+                Upload your doctor's note and let AI find the matching medicines for you.
+             </p>
+             <label className="bg-white/20 hover:bg-white/30 border border-white/30 text-white w-full py-2 rounded-lg text-xs font-bold text-center block cursor-pointer transition">
+                {isVerifying ? "Analyzing..." : "Upload & Auto-Fill"}
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  onChange={handlePrescriptionUpload} 
+                  accept=".pdf,image/*" 
+                  disabled={isVerifying} 
+                />
+             </label>
+             {verifyError && (
+               <p className="mt-2 text-[10px] text-red-100 bg-red-500/20 p-1.5 rounded">{verifyError}</p>
+             )}
+          </div>
 
           <form onSubmit={handleSearch} className="relative">
             <input
