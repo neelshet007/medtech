@@ -8,7 +8,9 @@ import {
   LogOut,
   PackageSearch,
   ShoppingCart,
+  Stethoscope,
   UserRound,
+  FlaskConical,
 } from "lucide-react";
 import { LogoutButton } from "@/components/LogoutButton";
 
@@ -18,6 +20,8 @@ const navigation = [
   { href: "/dashboard/orders", label: "Orders", icon: PackageSearch },
   { href: "/dashboard/cart", label: "Cart", icon: ShoppingCart },
   { href: "/dashboard/profile", label: "Profile", icon: UserRound },
+  { href: "/patient/consult", label: "Consult", icon: Stethoscope },
+  { href: "/patient/labs", label: "Lab Tests", icon: FlaskConical },
 ];
 
 export function PatientSidebar() {

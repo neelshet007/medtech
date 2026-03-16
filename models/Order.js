@@ -16,6 +16,23 @@ const orderItemSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  batchAllocations: [
+    {
+      batchId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+      },
+      expiryDate: {
+        type: Date,
+        required: true,
+      },
+      quantity: {
+        type: Number,
+        required: true,
+        min: 1,
+      },
+    },
+  ],
 });
 
 const orderSchema = new mongoose.Schema(
@@ -43,8 +60,8 @@ const orderSchema = new mongoose.Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["Processing", "Shipped", "Out for Delivery", "Delivered", "Cancelled"],
-      default: "Processing",
+      enum: ["Pending", "Processing", "Shipped", "Delivered", "Completed", "Cancelled"],
+      default: "Pending",
     },
     prescriptionUrl: {
       type: String,
@@ -58,7 +75,7 @@ const orderSchema = new mongoose.Schema(
       {
         status: {
           type: String,
-          enum: ["Processing", "Shipped", "Out for Delivery", "Delivered"],
+          enum: ["Pending", "Processing", "Shipped", "Delivered", "Completed", "Cancelled"],
           required: true,
         },
         date: {

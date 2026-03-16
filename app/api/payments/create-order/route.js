@@ -3,6 +3,8 @@ import Razorpay from "razorpay";
 import { auth } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { notifyAdminAboutOrder, notifyCustomerAboutOrder } from "@/lib/order-notifications";
+import { reserveInventoryForOrder } from "@/lib/order-processing";
+import { createTimelineEntry } from "@/lib/order-status";
 import { Order } from "@/models/Order";
 import { Product } from "@/models/Product";
 
@@ -68,26 +70,16 @@ export async function POST(request) {
       totalAmount,
       paymentStatus: paymentMethod === "COD" ? "Pending (COD)" : "Pending",
       paymentMethod,
-      orderStatus: "Processing",
+      orderStatus: "Pending",
       prescriptionUrl,
-      deliveryTimeline: [{ status: "Processing", description: "Order placed successfully" }],
+      deliveryTimeline: [createTimelineEntry("Pending", "Order created and waiting for confirmation.")],
     });
 
     if (paymentMethod === "COD") {
-      for (const item of normalizedItems) {
-        const updatedProduct = await Product.findOneAndUpdate(
-          { _id: item.product, stock: { $gte: item.quantity } },
-          { $inc: { stock: -item.quantity } },
-          { new: true }
-        );
-
-        if (!updatedProduct) {
-          await Order.findByIdAndDelete(order._id);
-          return NextResponse.json(
-            { message: "Inventory changed before the COD order was finalized." },
-            { status: 409 }
-          );
-        }
+      const reservation = await reserveInventoryForOrder(order._id, "Pending (COD)");
+      if (reservation.error) {
+        await Order.findByIdAndDelete(order._id);
+        return NextResponse.json({ message: reservation.error }, { status: 409 });
       }
 
       const notifiedOrder = await Order.findById(order._id).populate("user", "name email phone");

@@ -28,13 +28,15 @@ export default async function PatientOrdersPage() {
 
   const getStatusIcon = (status) => {
     switch (status) {
+      case "Pending":
+        return <Clock className="text-slate-500" size={24} />;
       case "Processing":
         return <Package className="text-blue-500" size={24} />;
       case "Shipped":
         return <Truck className="text-orange-500" size={24} />;
-      case "Out for Delivery":
-        return <Truck className="text-teal-500" size={24} />;
       case "Delivered":
+        return <Truck className="text-teal-500" size={24} />;
+      case "Completed":
         return <CheckCircle className="text-emerald-500" size={24} />;
       default:
         return <Clock className="text-slate-500" size={24} />;

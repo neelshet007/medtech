@@ -1,5 +1,29 @@
 import mongoose from "mongoose";
 
+const reviewSchema = new mongoose.Schema(
+  {
+    author: { type: String, required: true, trim: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
+
+const batchSchema = new mongoose.Schema(
+  {
+    quantity: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    expiryDate: {
+      type: Date,
+      required: true,
+    },
+  },
+  { _id: true }
+);
+
 const productSchema = new mongoose.Schema(
   {
     name: {
@@ -35,6 +59,40 @@ const productSchema = new mongoose.Schema(
     requiresPrescription: {
       type: Boolean,
       default: false,
+    },
+    drugList: {
+      type: [String],
+      default: [],
+    },
+    whenToUse: {
+      type: [String],
+      default: [],
+    },
+    ingredients: {
+      type: [String],
+      default: [],
+    },
+    sideEffects: {
+      type: [String],
+      default: [],
+    },
+    expiryInformation: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    reviews: {
+      type: [reviewSchema],
+      default: [],
+    },
+    batches: {
+      type: [batchSchema],
+      default: [],
+    },
+    lowStock: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
   },
   { timestamps: true }

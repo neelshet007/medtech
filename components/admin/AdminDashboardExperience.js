@@ -254,6 +254,17 @@ export function AdminDashboardExperience({ adminName }) {
                   Open Orders <ExternalLink size={16} />
                 </span>
               </Link>
+
+              <Link href="/admin/doctors" className="group flex flex-col items-start rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md">
+                <div className="mb-4 rounded-xl bg-sky-50 p-3 text-sky-600 transition group-hover:scale-110">
+                  <Users size={24} />
+                </div>
+                <h3 className="mb-2 text-lg font-bold text-slate-900">Doctors and labs</h3>
+                <p className="mb-4 text-sm text-slate-500">Manage doctor schedules, appointments, lab services, and diagnostic bookings.</p>
+                <span className="mt-auto flex items-center gap-1 text-sm font-medium text-sky-600 transition group-hover:gap-2">
+                  Open Workflows <ExternalLink size={16} />
+                </span>
+              </Link>
             </div>
           </>
         )}

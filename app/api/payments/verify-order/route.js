@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { notifyAdminAboutOrder, notifyCustomerAboutOrder } from "@/lib/order-notifications";
+import { reserveInventoryForOrder } from "@/lib/order-processing";
 import { Order } from "@/models/Order";
-import { Product } from "@/models/Product";
 
 export async function POST(request) {
   try {
@@ -46,25 +46,17 @@ export async function POST(request) {
     }
 
     if (order.paymentStatus !== "Completed") {
-      // Stock changes happen after payment verification and only on the server.
-      for (const item of order.items) {
-        const updatedProduct = await Product.findOneAndUpdate(
-          { _id: item.product, stock: { $gte: item.quantity } },
-          { $inc: { stock: -item.quantity } },
-          { new: true }
+      const reservation = await reserveInventoryForOrder(internal_order_id, "Completed");
+      if (reservation.error) {
+        await Order.findByIdAndUpdate(internal_order_id, {
+          paymentStatus: "Failed",
+          orderStatus: "Cancelled",
+        });
+
+        return NextResponse.json(
+          { success: false, message: reservation.error },
+          { status: 409 }
         );
-
-        if (!updatedProduct) {
-          await Order.findByIdAndUpdate(internal_order_id, {
-            paymentStatus: "Failed",
-            orderStatus: "Cancelled",
-          });
-
-          return NextResponse.json(
-            { success: false, message: "Inventory changed before the order was finalized." },
-            { status: 409 }
-          );
-        }
       }
     }
 

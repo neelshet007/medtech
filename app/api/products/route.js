@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
+import { buildExpiryBuckets } from "@/lib/inventory";
 import { Product } from "@/models/Product";
 import { validateProductPayload } from "@/lib/validation";
 
@@ -24,9 +25,18 @@ export async function GET(request) {
       query.$text = { $search: search };
     }
 
-    const products = await Product.find(query).sort({ createdAt: -1 });
+    const products = await Product.find(query).sort({ createdAt: -1 }).lean();
 
-    return NextResponse.json({ success: true, products }, { status: 200 });
+    const enrichedProducts = products.map((product) => {
+      const expiryBuckets = buildExpiryBuckets(product.batches || []);
+      return {
+        ...product,
+        nearExpiryCount: expiryBuckets.nearExpiry.length,
+        expiredBatchCount: expiryBuckets.expired.length,
+      };
+    });
+
+    return NextResponse.json({ success: true, products: enrichedProducts }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }

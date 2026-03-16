@@ -26,7 +26,7 @@ export default function AdminOrdersPage() {
         const initials = {};
         data.orders.forEach(o => {
           initials[o._id] = {
-            orderStatus: o.orderStatus || "Processing",
+            orderStatus: o.orderStatus || "Pending",
             trackingId: o.trackingId || "",
             description: ""
           };
@@ -94,7 +94,6 @@ export default function AdminOrdersPage() {
     if (!status) return null;
     switch (status) {
       case "Completed":
-      case "Delivered":
         return <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-green-100 text-green-700 rounded-lg w-fit"><CheckCircle2 size={12} /> {status}</span>;
       case "Processing":
       case "Pending":
@@ -102,9 +101,10 @@ export default function AdminOrdersPage() {
       case "Failed":
       case "Cancelled":
         return <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-red-100 text-red-700 rounded-lg w-fit"><XCircle size={12} /> {status}</span>;
-      case "Out for Delivery":
       case "Shipped":
          return <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-teal-100 text-teal-700 rounded-lg w-fit"><Truck size={12} /> {status}</span>;
+      case "Delivered":
+         return <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-sky-100 text-sky-700 rounded-lg w-fit"><Truck size={12} /> {status}</span>;
       default:
         return <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-blue-100 text-blue-700 rounded-lg w-fit"><Package size={12} /> {status}</span>;
     }
@@ -226,10 +226,11 @@ export default function AdminOrdersPage() {
                                         value={updateData[order._id].orderStatus}
                                         onChange={(e) => handleDataChange(order._id, "orderStatus", e.target.value)}
                                       >
+                                        <option value="Pending">Pending</option>
                                         <option value="Processing">Processing</option>
                                         <option value="Shipped">Shipped</option>
-                                        <option value="Out for Delivery">Out for Delivery</option>
                                         <option value="Delivered">Delivered</option>
+                                        <option value="Completed">Completed</option>
                                         <option value="Cancelled">Cancelled</option>
                                       </select>
                                    </div>

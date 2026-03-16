@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
-import { createTimelineEntry } from "@/lib/order-status";
+import { createTimelineEntry, validateOrderTransition } from "@/lib/order-status";
 import { Order } from "@/models/Order";
 
 export async function PATCH(request, context) {
@@ -29,9 +29,22 @@ export async function PATCH(request, context) {
       return NextResponse.json({ message: "Order not found" }, { status: 404 });
     }
 
-    order.orderStatus = orderStatus;
+    const transition = validateOrderTransition(order.orderStatus, orderStatus);
+    if (transition.error) {
+      return NextResponse.json({ message: transition.error }, { status: 400 });
+    }
+
     order.trackingId = trackingId || order.trackingId;
-    order.deliveryTimeline.push(createTimelineEntry(orderStatus, description));
+
+    for (const nextStatus of transition.data) {
+      order.deliveryTimeline.push(createTimelineEntry(nextStatus, description));
+      order.orderStatus = nextStatus;
+    }
+
+    if (order.orderStatus === "Completed" && order.paymentMethod === "COD") {
+      // COD revenue is recognized only after the delivery flow is complete.
+      order.paymentStatus = "Completed";
+    }
 
     await order.save();
 
