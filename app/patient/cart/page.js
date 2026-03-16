@@ -11,7 +11,7 @@ export default function CartPage() {
 
   if (!session?.user) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6 font-sans text-slate-800">
+      <div className="p-6 font-sans text-slate-800">
         <div className="mx-auto max-w-2xl rounded-2xl border border-slate-100 bg-white p-12 text-center shadow-sm">
           <h1 className="text-3xl font-bold text-slate-900">Please Sign In</h1>
           <p className="mt-3 text-slate-500">Patients must sign in before viewing or checking out their cart.</p>
@@ -29,7 +29,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 font-sans text-slate-800">
+    <div className="p-6 font-sans text-slate-800">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center space-x-4 mb-8">
           <Link href="/patient/products" className="p-2 bg-white rounded-full shadow-sm hover:shadow-md transition">

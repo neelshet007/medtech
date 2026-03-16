@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.next
+.git
+.vscode
+.env.*
+!.env.production
+README.md
+Dockerfile
+docker-compose.yml
+n8n/
+brain/

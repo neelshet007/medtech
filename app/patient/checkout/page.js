@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, CreditCard, Loader2, ShieldCheck, ShoppingBag } from "lucide-react";
+import { ArrowLeft, CreditCard, FileText, Loader2, ShieldCheck, ShoppingBag, UploadCloud } from "lucide-react";
 import { useCart } from "@/components/CartProvider";
 
 export default function CheckoutPage() {
@@ -13,6 +13,11 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
+  const [prescriptionFile, setPrescriptionFile] = useState(null);
+  const [isVerifyingPrescription, setIsVerifyingPrescription] = useState(false);
+  const [prescriptionVerified, setPrescriptionVerified] = useState(false);
+
+  const requiresPrescription = cart.some(item => item.product.requiresPrescription);
 
   useEffect(() => {
     function loadRazorpay() {
@@ -28,9 +33,38 @@ export default function CheckoutPage() {
     loadRazorpay();
   }, []);
 
+  async function handleVerifyPrescription() {
+    if (!prescriptionFile) return;
+    setIsVerifyingPrescription(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", prescriptionFile);
+      const res = await fetch("/api/prescription/parse", { method: "POST", body: formData });
+      const data = await res.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || "Failed to verify prescription");
+      }
+      
+      setPrescriptionVerified(true);
+      setError(""); // clear any existing errors
+    } catch (err) {
+      setError(err.message || "Failed to connect to AI server");
+    } finally {
+      setIsVerifyingPrescription(false);
+    }
+  }
+
   async function handlePayment() {
     if (!session?.user?.id) {
       setError("Please Sign In before placing an order.");
+      return;
+    }
+
+    if (requiresPrescription && !prescriptionVerified) {
+      setError("Please upload and verify your prescription before proceeding to payment.");
       return;
     }
 
@@ -41,7 +75,10 @@ export default function CheckoutPage() {
       const response = await fetch("/api/payments/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cart }),
+        body: JSON.stringify({ 
+          items: cart,
+          prescriptionUrl: prescriptionVerified ? "verified_by_ai" : null 
+        }),
       });
 
       const data = await response.json();
@@ -143,7 +180,12 @@ export default function CheckoutPage() {
               <div className="space-y-3 mb-6">
                 {cart.map((item) => (
                   <div key={item.product._id} className="flex justify-between text-sm">
-                    <span className="text-slate-600">{item.quantity}x {item.product.name}</span>
+                    <span className="text-slate-600">
+                      {item.quantity}x {item.product.name}
+                      {item.product.requiresPrescription && (
+                        <span className="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold">Rx API</span>
+                      )}
+                    </span>
                     <span className="font-medium text-slate-900">Rs. {item.price * item.quantity}</span>
                   </div>
                 ))}
@@ -151,13 +193,52 @@ export default function CheckoutPage() {
             </div>
 
             <div>
+              {requiresPrescription && !prescriptionVerified && (
+                <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50">
+                  <div className="flex items-center gap-2 text-red-700 font-bold mb-2">
+                    <FileText size={18} />
+                    Prescription Required
+                  </div>
+                  <p className="text-sm text-red-600 mb-3">One or more items in your cart require a valid medical prescription.</p>
+                  <label className="flex items-center justify-center w-full p-3 border-2 border-dashed border-red-300 rounded-lg bg-white cursor-pointer hover:bg-red-50 transition">
+                    <UploadCloud size={20} className="text-red-500 mr-2" />
+                    <span className="text-sm font-medium text-red-600">
+                      {prescriptionFile ? prescriptionFile.name : "Select Prescription"}
+                    </span>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      onChange={(e) => setPrescriptionFile(e.target.files[0])}
+                      accept="image/*,.pdf" 
+                    />
+                  </label>
+                  {prescriptionFile && (
+                    <button
+                      onClick={handleVerifyPrescription}
+                      disabled={isVerifyingPrescription}
+                      className="w-full mt-3 py-2 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-700 transition disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isVerifyingPrescription ? <Loader2 className="animate-spin" size={16} /> : null}
+                      Verify with AI
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {requiresPrescription && prescriptionVerified && (
+                <div className="mb-6 p-4 rounded-xl border border-teal-200 bg-teal-50 flex items-center gap-2 text-teal-800">
+                  <ShieldCheck size={20} className="text-teal-600" />
+                  <span className="text-sm font-bold">Prescription Verified by AI</span>
+                </div>
+              )}
+
               <div className="flex justify-between items-center text-lg font-bold text-slate-900 pt-4 border-t border-slate-100 mb-6">
                 <span>Total Amount Payable</span>
                 <span>Rs. {getCartTotal().toFixed(2)}</span>
               </div>
               <button
                 onClick={handlePayment}
-                disabled={isProcessing || !session?.user}
+                disabled={isProcessing || !session?.user || (requiresPrescription && !prescriptionVerified)}
                 className="w-full flex items-center justify-center gap-2 py-4 px-4 bg-teal-600 text-white rounded-xl font-bold text-lg hover:bg-teal-700 transition shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <CreditCard size={24} />}

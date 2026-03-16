@@ -19,6 +19,7 @@ export async function POST(request) {
 
     const body = await request.json();
     const items = Array.isArray(body.items) ? body.items : [];
+    const prescriptionUrl = body.prescriptionUrl || null;
 
     if (items.length === 0) {
       return NextResponse.json({ message: "Cart items are required." }, { status: 400 });
@@ -65,6 +66,8 @@ export async function POST(request) {
       totalAmount,
       paymentStatus: "Pending",
       orderStatus: "Processing",
+      prescriptionUrl,
+      deliveryTimeline: [{ status: "Processing", description: "Order placed successfully" }],
     });
 
     const razorpayOrder = await razorpay.orders.create({

@@ -38,9 +38,31 @@ const orderSchema = new mongoose.Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["Processing", "Shipped", "Delivered", "Cancelled"],
+      enum: ["Processing", "Shipped", "Out for Delivery", "Delivered", "Cancelled"],
       default: "Processing",
     },
+    prescriptionUrl: {
+      type: String,
+      required: false,
+    },
+    trackingId: {
+      type: String,
+      required: false,
+    },
+    deliveryTimeline: [
+      {
+        status: {
+          type: String,
+          enum: ["Processing", "Shipped", "Out for Delivery", "Delivered"],
+          required: true,
+        },
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+        description: String,
+      }
+    ],
     // Razorpay specific fields
     razorpayOrderId: {
       type: String,

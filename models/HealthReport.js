@@ -21,12 +21,13 @@ const healthReportSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    // For storing extracted metrics (e.g. for Recharts graphs later)
     metrics: {
       bloodPressureSys: Number,
       bloodPressureDia: Number,
       heartRate: Number,
       sugarLevel: Number,
+      weight: Number,
+      bloodGroup: String,
     },
   },
   { timestamps: true }

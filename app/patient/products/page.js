@@ -14,6 +14,7 @@ export default function PatientProductsPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [authMessage, setAuthMessage] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
   const { addToCart, itemCount } = useCart();
 
   const categories = ["All", "Medicine", "Equipment", "Supplement", "Personal Care"];
@@ -55,10 +56,19 @@ export default function PatientProductsPage() {
 
     addToCart(product);
     setAuthMessage("");
+    setToastMessage(`Added ${product.name} to cart!`);
+    setTimeout(() => setToastMessage(""), 3000);
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="p-6 md:p-8 xl:p-12 relative">
+      {toastMessage && (
+        <div className="fixed bottom-4 right-4 bg-teal-600 text-white px-6 py-3 rounded-xl shadow-lg font-medium flex items-center gap-2 z-50 animate-bounce">
+          <ShoppingCart size={18} />
+          {toastMessage}
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
         <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
           <Pill className="text-teal-600" />
@@ -144,7 +154,7 @@ export default function PatientProductsPage() {
                       <span className="font-bold text-lg text-slate-800">Rs. {product.price}</span>
                       <button
                         onClick={() => handleAddToCart(product)}
-                        disabled={product.stock === 0}
+                        disabled={product.stock === 0 || !session?.user}
                         className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
