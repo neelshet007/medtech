@@ -9,13 +9,15 @@ import { useCart } from "@/components/CartProvider";
 
 export default function CheckoutPage() {
   const { data: session } = useSession();
-  const { cart, getCartTotal, clearCart } = useCart();
+  const { cart, getCartTotal, clearCart, addToCart } = useCart();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
   const [prescriptionFile, setPrescriptionFile] = useState(null);
   const [isVerifyingPrescription, setIsVerifyingPrescription] = useState(false);
   const [prescriptionVerified, setPrescriptionVerified] = useState(false);
+  const [parsedMedicines, setParsedMedicines] = useState([]);
+  const [matchedProducts, setMatchedProducts] = useState([]);
 
   const requiresPrescription = cart.some(item => item.product.requiresPrescription);
 
@@ -39,17 +41,54 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", prescriptionFile);
-      const res = await fetch("/api/prescription/parse", { method: "POST", body: formData });
-      const data = await res.json();
-      
-      if (!data.success) {
-        throw new Error(data.message || "Failed to verify prescription");
+      // Convert file to base64 to send to n8n
+      const buffer = await prescriptionFile.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_PRESCRIPTION_WEBHOOK_URL;
+
+      let prescriptionData = null;
+
+      if (webhookUrl) {
+        // Call the n8n workflow which: analyzes via AI → matches products → returns results
+        const res = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileData: base64,
+            fileType: prescriptionFile.type,
+            fileName: prescriptionFile.name,
+            userId: session?.user?.id,
+          }),
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          throw new Error(data.message || "AI could not read the prescription");
+        }
+
+        prescriptionData = data;
+      } else {
+        // Fallback for local dev: call our internal proxy instead
+        const formData = new FormData();
+        formData.append("file", prescriptionFile);
+        const res = await fetch("/api/prescription/parse", { method: "POST", body: formData });
+        prescriptionData = await res.json();
+        if (!prescriptionData.success) {
+          throw new Error(prescriptionData.message || "Failed to verify prescription");
+        }
       }
-      
+
+      setParsedMedicines(prescriptionData.parsedMedicines || []);
+      setMatchedProducts(prescriptionData.matchedProducts || []);
       setPrescriptionVerified(true);
-      setError(""); // clear any existing errors
+
+      // Auto-add matched products to cart
+      if (prescriptionData.matchedProducts?.length > 0) {
+        prescriptionData.matchedProducts.forEach(product => {
+          addToCart({ product, quantity: 1, price: product.price });
+        });
+      }
     } catch (err) {
       setError(err.message || "Failed to connect to AI server");
     } finally {
@@ -226,11 +265,47 @@ export default function CheckoutPage() {
               )}
 
               {requiresPrescription && prescriptionVerified && (
-                <div className="mb-6 p-4 rounded-xl border border-teal-200 bg-teal-50 flex items-center gap-2 text-teal-800">
-                  <ShieldCheck size={20} className="text-teal-600" />
-                  <span className="text-sm font-bold">Prescription Verified by AI</span>
+                <div className="mb-6 space-y-3">
+                  <div className="p-4 rounded-xl border border-teal-200 bg-teal-50 flex items-center gap-2 text-teal-800">
+                    <ShieldCheck size={20} className="text-teal-600" />
+                    <span className="text-sm font-bold">Prescription Verified by AI</span>
+                  </div>
+
+                  {parsedMedicines.length > 0 && (
+                    <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Medicines Detected by AI</p>
+                      <ul className="space-y-1">
+                        {parsedMedicines.map((med, i) => (
+                          <li key={i} className="text-sm text-slate-700 flex gap-2">
+                            <span className="text-teal-500 font-bold">✓</span>
+                            <span>{med.name} — <span className="text-slate-500">{med.dosage}, {med.frequency}</span></span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {matchedProducts.length > 0 ? (
+                    <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50">
+                      <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">
+                        {matchedProducts.length} Product(s) Auto-Added to Cart
+                      </p>
+                      <ul className="space-y-1">
+                        {matchedProducts.map((p) => (
+                          <li key={p._id} className="text-sm font-medium text-emerald-800">
+                            + {p.name} — Rs. {p.price}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : parsedMedicines.length > 0 ? (
+                    <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                      No matching products found in our pharmacy for the prescribed medicines. Please browse manually.
+                    </p>
+                  ) : null}
                 </div>
               )}
+
 
               <div className="flex justify-between items-center text-lg font-bold text-slate-900 pt-4 border-t border-slate-100 mb-6">
                 <span>Total Amount Payable</span>

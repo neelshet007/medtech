@@ -17,6 +17,11 @@ export default function PatientDashboard() {
   const [chartData, setChartData] = useState([]);
   const [latestMetrics, setLatestMetrics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     async function fetchHealthData() {
@@ -106,7 +111,7 @@ export default function PatientDashboard() {
           <div className="h-64 w-full">
             {isLoading ? (
                <div className="w-full h-full flex justify-center items-center"><Loader2 className="animate-spin text-teal-600" size={32} /></div>
-            ) : (
+            ) : isMounted ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -117,7 +122,7 @@ export default function PatientDashboard() {
                   <Line type="monotone" dataKey="pressure" stroke="#818cf8" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} name="Systolic BP (mmHg)" />
                 </LineChart>
               </ResponsiveContainer>
-            )}
+            ) : null}
           </div>
           {latestMetrics && (
             <div className="mt-6 pt-6 border-t border-slate-100 flex gap-6 text-sm">

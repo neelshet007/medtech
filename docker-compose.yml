@@ -9,31 +9,54 @@ services:
     restart: always
     ports:
       - "3000:3000"
+    env_file:
+      - .env.production.example   # rename to .env.production and fill real values
     environment:
       - NODE_ENV=production
+      # --- Database ---
       - MONGODB_URI=${MONGODB_URI}
+      # --- Auth ---
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      # --- Payment ---
       - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
       - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
-      - N8N_PRESCRIPTION_WEBHOOK_URL=${N8N_PRESCRIPTION_WEBHOOK_URL}
+      - NEXT_PUBLIC_RAZORPAY_KEY_ID=${NEXT_PUBLIC_RAZORPAY_KEY_ID}
+      # --- Cloudinary ---
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      # --- n8n Webhooks ---
+      - NEXT_PUBLIC_N8N_PRESCRIPTION_WEBHOOK_URL=${NEXT_PUBLIC_N8N_PRESCRIPTION_WEBHOOK_URL}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - N8N_CUSTOMER_WEBHOOK_URL=${N8N_CUSTOMER_WEBHOOK_URL}
       - N8N_HEALTH_RECORD_WEBHOOK_URL=${N8N_HEALTH_RECORD_WEBHOOK_URL}
+      # --- Internal Security ---
+      - N8N_INTERNAL_SECRET=${N8N_INTERNAL_SECRET}
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 15s
 
   mongodb:
-    image: mongo:latest
+    image: mongo:7
     container_name: mediconnect-db
     restart: always
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   mongodb_data:

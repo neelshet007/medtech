@@ -1,0 +1,322 @@
+{
+  "name": "Prescription AI Analysis & Auto-Cart Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mediconnect/prescription/analyze",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "name": "Webhook: Receive Prescription",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.fileData}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "name": "IF: File Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env[\"OPENAI_API_KEY\"]}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4-vision-preview"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"You are a medical prescription parser. Analyze this prescription image and return ONLY a valid JSON object with this structure: {\\\"medicines\\\": [{\\\"name\\\": string, \\\"dosage\\\": string, \\\"frequency\\\": string, \\\"duration\\\": string}], \\\"patientName\\\": string, \\\"doctorName\\\": string, \\\"date\\\": string, \\\"isValid\\\": boolean}. Do not include any extra text.\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:{{$json.body.fileType}};base64,{{$json.body.fileData}}\"}}]}]"
+            },
+            {
+              "name": "max_tokens",
+              "value": "1000"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "OpenAI: Analyze Prescription",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "rawContent",
+              "value": "={{$json.choices[0].message.content}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Extract AI Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the AI extracted text into a JSON object\nconst rawContent = $input.first().json.rawContent;\nlet parsed;\n\ntry {\n  // Try to clean up escaped JSON if needed\n  const cleaned = rawContent.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch(e) {\n  parsed = {\n    medicines: [],\n    patientName: 'Unknown',\n    doctorName: 'Unknown',\n    date: new Date().toISOString(),\n    isValid: false,\n    parseError: e.message\n  };\n}\n\nreturn [{ json: { prescription: parsed, userId: $input.first().json.userId || null } }];"
+      },
+      "name": "Code: Parse JSON from AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$env[\"MEDICONNECT_BASE_URL\"]}}/api/prescription/match-products",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-n8n-secret",
+              "value": "={{$env[\"N8N_INTERNAL_SECRET\"]}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "medicines",
+              "value": "={{JSON.stringify($json.prescription.medicines)}}"
+            },
+            {
+              "name": "userId",
+              "value": "={{$json.userId}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "HTTP: Match & Add Products to Cart",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "boolean": [
+            {
+              "name": "success",
+              "value": true
+            }
+          ],
+          "string": [
+            {
+              "name": "message",
+              "value": "Prescription analyzed and products matched successfully"
+            }
+          ],
+          "object": [
+            {
+              "name": "prescription",
+              "value": "={{$node[\"Code: Parse JSON from AI\"].json.prescription}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "boolean": [
+            {
+              "name": "success",
+              "value": false
+            }
+          ],
+          "string": [
+            {
+              "name": "message",
+              "value": "No prescription file data provided"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Build Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [680, 420]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "name": "Respond: Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "name": "Respond: Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 420]
+    }
+  ],
+  "connections": {
+    "Webhook: Receive Prescription": {
+      "main": [
+        [
+          {
+            "node": "IF: File Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: File Exists?": {
+      "main": [
+        [
+          {
+            "node": "OpenAI: Analyze Prescription",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: Analyze Prescription": {
+      "main": [
+        [
+          {
+            "node": "Extract AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract AI Response": {
+      "main": [
+        [
+          {
+            "node": "Code: Parse JSON from AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Parse JSON from AI": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Match & Add Products to Cart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Match & Add Products to Cart": {
+      "main": [
+        [
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond: Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Error Response": {
+      "main": [
+        [
+          {
+            "node": "Respond: Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "last",
+    "executionTimeout": 60
+  }
+}

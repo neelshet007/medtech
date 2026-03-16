@@ -23,11 +23,26 @@ function readInitialCart() {
 }
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState(readInitialCart);
+  const [cart, setCart] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    window.localStorage.setItem("medical_cart", JSON.stringify(cart));
-  }, [cart]);
+    const savedCart = window.localStorage.getItem("medical_cart");
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (error) {
+        console.error("Failed to parse cart", error);
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      window.localStorage.setItem("medical_cart", JSON.stringify(cart));
+    }
+  }, [cart, isLoaded]);
 
   function addToCart(product) {
     setCart((current) => {
